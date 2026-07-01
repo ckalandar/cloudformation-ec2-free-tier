@@ -1,0 +1,18 @@
+let ec2_instances = Resources.*[
+    Type == "AWS::EC2::Instance"
+]
+
+rule enforce_imdsv2 when %ec2_instances !empty {
+    %ec2_instances.Properties.MetadataOptions.HttpTokens == "required"
+}
+
+rule allowed_instance_types when %ec2_instances !empty {
+    %ec2_instances.Properties.InstanceType IN [
+        "t2.micro",
+        "t3.micro"
+    ]
+}
+
+rule require_name_tag when %ec2_instances !empty {
+    %ec2_instances.Properties.Tags[*].Key CONTAINS "Name"
+}
