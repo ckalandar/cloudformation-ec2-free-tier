@@ -34,7 +34,7 @@ jobs:
 
       - name: Install Guard
         run: |
-          curl -L https://github.com/aws-cloudformation/cloudformation-guard/releases/latest/download/cfn-guard-linux-latest.tar.gz -o guard.tar.gz
+          curl -L https://github.com/aws-cloudformation/cloudformation-guard/releases/download/3.2.0/cfn-guard-v3-linux-latest.tar.gz -o guard.tar.gz
           tar -xzf guard.tar.gz
 
       - name: Run Guard
