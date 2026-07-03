@@ -1,0 +1,67 @@
+name: Validate CloudFormation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  validate:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python Packages
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run cfn-lint
+        run: |
+          cfn-lint templates/ec2.yaml
+
+      - name: Install Guard
+        run: |
+          curl -L https://github.com/aws-cloudformation/cloudformation-guard/releases/latest/download/cfn-guard-linux-latest.tar.gz -o guard.tar.gz
+          tar -xzf guard.tar.gz
+
+      - name: Run Guard
+        run: |
+          ./cfn-guard validate \
+          --rules guard \
+          --data templates/ec2.yaml
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+
+      - name: Install cfn-nag
+        run: |
+          gem install cfn-nag
+
+      - name: Run cfn-nag
+        run: |
+          cfn_nag_scan \
+          --input-path templates/ec2.yaml
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Run TaskCat
+        run: |
+          taskcat test run

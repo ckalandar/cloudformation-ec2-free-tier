@@ -1,0 +1,56 @@
+name: Deploy EC2
+
+on:
+
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Discover Default VPC
+        id: network
+
+        run: |
+
+          VPC_ID=$(aws ec2 describe-vpcs \
+            --filters Name=isDefault,Values=true \
+            --query "Vpcs[0].VpcId" \
+            --output text)
+
+          SUBNET_ID=$(aws ec2 describe-subnets \
+            --filters Name=default-for-az,Values=true \
+            --query "Subnets[0].SubnetId" \
+            --output text)
+
+          echo "vpc=$VPC_ID" >> $GITHUB_OUTPUT
+          echo "subnet=$SUBNET_ID" >> $GITHUB_OUTPUT
+
+      - name: Deploy Stack
+        run: |
+
+          aws cloudformation deploy \
+          --stack-name ec2-free-tier \
+          --template-file templates/ec2.yaml \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides \
+          VpcId=${{ steps.network.outputs.vpc }} \
+          SubnetId=${{ steps.network.outputs.subnet }}
+
+#Added this later

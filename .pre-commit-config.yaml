@@ -4,3 +4,4 @@ repos:
 
     hooks:
       - id: cfn-lint
+        files: ^templates/.*\.(yaml|yml)$
