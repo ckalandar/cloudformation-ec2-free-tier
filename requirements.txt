@@ -1,2 +1,3 @@
+setuptools
 cfn-lint>=1.39.0
 taskcat>=0.9.50
