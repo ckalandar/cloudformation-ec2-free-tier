@@ -44,11 +44,16 @@ jobs:
 
       - name: Install cfn-guard
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf \
+          #VERSION=3.1.2
+          wget https://github.com/aws-cloudformation/cloudformation-guard/releases/download/3.2.0/cfn-guard-v3-x86_64-linux-latest.tar.gz
+          #wget https://github.com/aws-cloudformation/cloudformation-guard/releases/download/${VERSION}/cfn-guard-v${VERSION}-x86_64-unknown-linux-musl.tar.gz
+          tar -xzf cfn-guard-v${VERSION}-x86_64-unknown-linux-musl.tar.gz
+          chmod +x cfn-guard
+          #curl --proto '=https' --tlsv1.2 -sSf \
             https://raw.githubusercontent.com/aws-cloudformation/cloudformation-guard/main/install-guard.sh \
             | sh
 
-          echo "$HOME/.guard/bin" >> $GITHUB_PATH
+          #echo "$HOME/.guard/bin" >> $GITHUB_PATH
 
       - name: Verify cfn-guard
         run: |
