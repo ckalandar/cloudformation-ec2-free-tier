@@ -1,10 +1,6 @@
 name: Deploy EC2
 
 on:
-
-  workflow_dispatch:
-
-on:
   workflow_run:
     workflows: ["Validate CloudFormation"]
     types:
