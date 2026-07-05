@@ -143,14 +143,17 @@ jobs:
         run: |
           taskcat test run
 
-      - name: Dump TaskCat Output
+
+      - name: Capture Recent Stacks
         if: always()
         run: |
-          if [ -d ".taskcat_outputs" ]; then
-            find .taskcat_outputs -type f \
-              -exec echo "==== {} ====" \; \
-              -exec cat {} \;
-          fi
+
+          aws cloudformation list-stacks \
+            --stack-status-filter \
+            CREATE_COMPLETE \
+            DELETE_COMPLETE \
+            DELETE_IN_PROGRESS \
+            CREATE_IN_PROGRESS
 
       - name: Upload TaskCat Logs
         if: always()

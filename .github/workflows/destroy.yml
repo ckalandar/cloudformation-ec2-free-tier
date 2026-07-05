@@ -26,6 +26,8 @@ jobs:
 
           aws cloudformation delete-stack \
           --stack-name ec2-free-tier
+          --region us-east-1
 
           aws cloudformation wait stack-delete-complete \
           --stack-name ec2-free-tier
+          --region us-east-1

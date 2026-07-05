@@ -4,6 +4,12 @@ on:
 
   workflow_dispatch:
 
+on:
+  workflow_run:
+    workflows: ["Validate CloudFormation"]
+    types:
+      - completed
+
 permissions:
   id-token: write
   contents: read
@@ -30,7 +36,7 @@ jobs:
         run: |
 
           VPC_ID=$(aws ec2 describe-vpcs \
-            --filters Name=isDefault,Values=true \
+            --filters Name=is-default,Values=true \
             --query "Vpcs[0].VpcId" \
             --output text)
 
@@ -52,5 +58,3 @@ jobs:
           --parameter-overrides \
           VpcId=${{ steps.network.outputs.vpc }} \
           SubnetId=${{ steps.network.outputs.subnet }}
-
-#Added this later
