@@ -1,151 +1,159 @@
 name: Validate CloudFormation
 
 on:
-  push:
-    branches:
-      - main
+push:
+branches:
+- main
 
-  pull_request:
+pull_request:
 
 permissions:
-  id-token: write
-  contents: read
+id-token: write
+contents: read
 
 jobs:
+validate:
+runs-on: ubuntu-latest
 
-  validate:
+```
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
 
-    runs-on: ubuntu-latest
+  - name: Setup Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.11"
 
-    steps:
+  - name: Install Python Dependencies
+    run: |
+      python -m pip install --upgrade pip
+      pip install "setuptools<81"
+      pip install -r requirements.txt
 
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+  - name: Verify Files
+    run: |
+      pwd
+      ls -la
+      find . -type f | sort
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+  - name: Verify TaskCat
+    run: |
+      taskcat --version
 
-      - name: Install Python Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install "setuptools<81"
-          pip install -r requirements.txt
+  - name: Run cfn-lint
+    run: |
+      cfn-lint templates/ec2.yaml
 
-      - name: Verify Files
-        run: |
-          pwd
-          ls -la
-          find . -type f | sort
+  - name: Install cfn-guard
+    run: |
+      wget https://github.com/aws-cloudformation/cloudformation-guard/releases/download/3.2.0/cfn-guard-v3-x86_64-linux-latest.tar.gz
 
-      - name: Run cfn-lint
-        run: |
-          cfn-lint templates/ec2.yaml
+      tar -xzf cfn-guard-v3-x86_64-linux-latest.tar.gz
 
-      - name: Install cfn-guard
-        run: |
-          #VERSION=3.1.2
-          wget https://github.com/aws-cloudformation/cloudformation-guard/releases/download/3.2.0/cfn-guard-v3-x86_64-linux-latest.tar.gz
-          #wget https://github.com/aws-cloudformation/cloudformation-guard/releases/download/${VERSION}/cfn-guard-v${VERSION}-x86_64-unknown-linux-musl.tar.gz
-          #tar -xzf cfn-guard-v${VERSION}-x86_64-unknown-linux-musl.tar.gz
-          tar -xzf cfn-guard-v3-x86_64-linux-latest.tar.gz
-          chmod +x cfn-guard-v3-x86_64-linux-latest/cfn-guard
-          sudo mv cfn-guard-v3-x86_64-linux-latest/cfn-guard /usr/local/bin/cfn-guard
-          #curl --proto '=https' --tlsv1.2 -sSf \
-            https://raw.githubusercontent.com/aws-cloudformation/cloudformation-guard/main/install-guard.sh \
-            | sh
+      chmod +x cfn-guard-v3-x86_64-linux-latest/cfn-guard
 
-          #echo "$HOME/.guard/bin" >> $GITHUB_PATH
+      sudo mv cfn-guard-v3-x86_64-linux-latest/cfn-guard /usr/local/bin/cfn-guard
 
-      - name: Verify cfn-guard
-        run: |
-          cfn-guard --version
+  - name: Verify cfn-guard
+    run: |
+      cfn-guard --version
 
-      - name: Run cfn-guard
-        run: |
-          cfn-guard validate \
-            --rules guard \
-            --data templates/ec2.yaml
+  - name: Run cfn-guard
+    run: |
+      cfn-guard validate \
+        --rules guard \
+        --data templates/ec2.yaml
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
+  - name: Setup Ruby
+    uses: ruby/setup-ruby@v1
+    with:
+      ruby-version: "3.2"
 
-      - name: Install cfn-nag
-        run: |
-          gem install cfn-nag
+  - name: Install cfn-nag
+    run: |
+      gem install cfn-nag
 
-      - name: Verify cfn-nag
-        run: |
-          cfn_nag_scan --version
+  - name: Verify cfn-nag
+    run: |
+      cfn_nag_scan --version
 
-      - name: Run cfn-nag
-        run: |
-          cfn_nag_scan \
-            --input-path templates/ec2.yaml
+  - name: Run cfn-nag
+    run: |
+      cfn_nag_scan \
+        --input-path templates/ec2.yaml
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+  - name: Configure AWS Credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+      aws-region: us-east-1
 
-      - name: Verify AWS Identity
-        run: |
-          aws sts get-caller-identity
+  - name: Verify AWS Identity
+    run: |
+      aws sts get-caller-identity
 
-      - name: Discover Network
-        run: |
-          VPC_ID=$(aws ec2 describe-vpcs \
-            --filters Name=is-default,Values=true \
-            --region us-east-1 \
-            --query 'Vpcs[0].VpcId' \
-            --output text)
+  - name: Discover Network
+    run: |
+      VPC_ID=$(aws ec2 describe-vpcs \
+        --filters Name=is-default,Values=true \
+        --region us-east-1 \
+        --query 'Vpcs[0].VpcId' \
+        --output text)
 
-          SUBNET_ID=$(aws ec2 describe-subnets \
-            --filters Name=vpc-id,Values=$VPC_ID \
-            --region us-east-1 \
-            --query 'Subnets[0].SubnetId' \
-            --output text)
+      SUBNET_ID=$(aws ec2 describe-subnets \
+        --filters Name=vpc-id,Values=$VPC_ID \
+        --region us-east-1 \
+        --query 'Subnets[0].SubnetId' \
+        --output text)
 
-          echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
-          echo "SUBNET_ID=$SUBNET_ID" >> $GITHUB_ENV
+      echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
+      echo "SUBNET_ID=$SUBNET_ID" >> $GITHUB_ENV
 
-          echo "Using VPC: $VPC_ID"
-          echo "Using Subnet: $SUBNET_ID"
+      echo "Using VPC: $VPC_ID"
+      echo "Using Subnet: $SUBNET_ID"
 
-      - name: Generate TaskCat Config
-        run: |
-          cat > .taskcat.yml <<EOF
-          project:
-            name: ec2-free-tier
+  - name: Verify Network Values
+    run: |
+      echo "VPC_ID=${{ env.VPC_ID }}"
+      echo "SUBNET_ID=${{ env.SUBNET_ID }}"
 
-          tests:
-            t2micro:
-              template: templates/ec2.yaml
-              regions:
-                - us-east-1
-              parameters:
-                VpcId: ${VPC_ID}
-                SubnetId: ${SUBNET_ID}
-                InstanceType: t2.micro
-        EOF
+  - name: Generate TaskCat Config
+    run: |
+      echo "project:" > .taskcat.yml
+      echo "  name: ec2-free-tier" >> .taskcat.yml
+      echo "" >> .taskcat.yml
+      echo "tests:" >> .taskcat.yml
+      echo "  t2micro:" >> .taskcat.yml
+      echo "    template: templates/ec2.yaml" >> .taskcat.yml
+      echo "    regions:" >> .taskcat.yml
+      echo "      - us-east-1" >> .taskcat.yml
+      echo "    parameters:" >> .taskcat.yml
+      echo "      VpcId: $VPC_ID" >> .taskcat.yml
+      echo "      SubnetId: $SUBNET_ID" >> .taskcat.yml
+      echo "      InstanceType: t2.micro" >> .taskcat.yml
 
-      - name: Run TaskCat
-        run: |
-          taskcat test run
+      echo ""
+      echo "===== GENERATED TASKCAT CONFIG ====="
+      cat .taskcat.yml
 
-      - name: Upload TaskCat Logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: taskcat-results
-          path: |
-            .taskcat_outputs
+  - name: Run TaskCat
+    run: |
+      taskcat test run
 
-      - name: Dump TaskCat Output
-        if: always()
-        run: |
-          find .taskcat_outputs -type f -exec echo "==== {} ====" \; -exec cat {} \; || true
+  - name: Dump TaskCat Output
+    if: always()
+    run: |
+      if [ -d ".taskcat_outputs" ]; then
+        find .taskcat_outputs -type f \
+          -exec echo "==== {} ====" \; \
+          -exec cat {} \;
+      fi
+
+  - name: Upload TaskCat Logs
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: taskcat-results
+      path: .taskcat_outputs
+```
