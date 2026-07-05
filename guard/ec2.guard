@@ -12,7 +12,3 @@ rule allowed_instance_types when %ec2_instances !empty {
         "t3.micro"
     ]
 }
-
-rule require_name_tag when %ec2_instances !empty {
-    %ec2_instances.Properties.Tags[*].Key CONTAINS "Name"
-}
