@@ -1,10 +1,11 @@
 name: Validate CloudFormation
 
 on:
-  pull_request:
   push:
     branches:
       - main
+
+  pull_request:
 
 permissions:
   id-token: write
@@ -18,50 +19,83 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install Python Packages
+      - name: Install Python Dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Verify Files
+        run: |
+          pwd
+          ls -la
+          find . -type f | sort
 
       - name: Run cfn-lint
         run: |
           cfn-lint templates/ec2.yaml
 
-      - name: Install Guard
+      - name: Install cfn-guard
         run: |
-          curl -L https://github.com/aws-cloudformation/cloudformation-guard/releases/download/3.2.0/cfn-guard-v3-linux-latest.tar.gz -o guard.tar.gz
-          tar -xzf guard.tar.gz
+          curl --proto '=https' --tlsv1.2 -sSf \
+            https://raw.githubusercontent.com/aws-cloudformation/cloudformation-guard/main/install-guard.sh \
+            | sh
 
-      - name: Run Guard
+          echo "$HOME/.guard/bin" >> $GITHUB_PATH
+
+      - name: Verify cfn-guard
         run: |
-          ./cfn-guard validate \
-          --rules guard \
-          --data templates/ec2.yaml
+          cfn-guard --version
 
-      - uses: ruby/setup-ruby@v1
+      - name: Run cfn-guard
+        run: |
+          cfn-guard validate \
+            --rules guard \
+            --data templates/ec2.yaml
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.2
+          ruby-version: "3.2"
 
       - name: Install cfn-nag
         run: |
           gem install cfn-nag
 
+      - name: Verify cfn-nag
+        run: |
+          cfn_nag_scan --version
+
       - name: Run cfn-nag
         run: |
           cfn_nag_scan \
-          --input-path templates/ec2.yaml
+            --input-path templates/ec2.yaml
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: us-east-1
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Verify AWS Identity
+        run: |
+          aws sts get-caller-identity
 
       - name: Run TaskCat
         run: |
           taskcat test run
+
+      - name: Upload TaskCat Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskcat-results
+          path: |
+            .taskcat_outputs
