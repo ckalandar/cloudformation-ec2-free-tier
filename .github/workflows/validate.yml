@@ -96,19 +96,42 @@ jobs:
         run: |
           aws sts get-caller-identity
 
-      - name: Verify Network
+      - name: Discover Network
         run: |
-          echo "Default VPC"
-
-          aws ec2 describe-vpcs \
+          VPC_ID=$(aws ec2 describe-vpcs \
             --filters Name=is-default,Values=true \
-            --region us-east-1
-
-          echo "Default Subnets"
-
-          aws ec2 describe-subnets \
             --region us-east-1 \
-            --filters Name=default-for-az,Values=true
+            --query 'Vpcs[0].VpcId' \
+            --output text)
+
+          SUBNET_ID=$(aws ec2 describe-subnets \
+            --filters Name=vpc-id,Values=$VPC_ID \
+            --region us-east-1 \
+            --query 'Subnets[0].SubnetId' \
+            --output text)
+
+          echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
+          echo "SUBNET_ID=$SUBNET_ID" >> $GITHUB_ENV
+
+          echo "Using VPC: $VPC_ID"
+          echo "Using Subnet: $SUBNET_ID"
+
+      - name: Generate TaskCat Config
+        run: |
+          cat > .taskcat.yml <<EOF
+          project:
+            name: ec2-free-tier
+
+          tests:
+            t2micro:
+              template: templates/ec2.yaml
+              regions:
+                - us-east-1
+              parameters:
+                VpcId: ${VPC_ID}
+                SubnetId: ${SUBNET_ID}
+                InstanceType: t2.micro
+        EOF
 
       - name: Run TaskCat
         run: |
