@@ -17,5 +17,3 @@ tests:
 
     regions:
       - us-east-1
-
-    stack_delete: false

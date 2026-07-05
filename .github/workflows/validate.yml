@@ -122,7 +122,7 @@ jobs:
           path: |
             .taskcat_outputs
 
-      - name: List TaskCat Output
+      - name: Dump TaskCat Output
         if: always()
         run: |
-          find .taskcat_outputs -type f || true
+          find .taskcat_outputs -type f -exec echo "==== {} ====" \; -exec cat {} \; || true
