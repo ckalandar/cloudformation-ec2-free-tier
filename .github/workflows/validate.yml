@@ -96,6 +96,20 @@ jobs:
         run: |
           aws sts get-caller-identity
 
+      - name: Verify Network
+        run: |
+          echo "Default VPC"
+
+          aws ec2 describe-vpcs \
+            --filters Name=is-default,Values=true \
+            --region us-east-1
+
+          echo "Default Subnets"
+
+          aws ec2 describe-subnets \
+            --region us-east-1 \
+            --filters Name=default-for-az,Values=true
+
       - name: Run TaskCat
         run: |
           taskcat test run
@@ -107,3 +121,8 @@ jobs:
           name: taskcat-results
           path: |
             .taskcat_outputs
+
+      - name: List TaskCat Output
+        if: always()
+        run: |
+          find .taskcat_outputs -type f || true

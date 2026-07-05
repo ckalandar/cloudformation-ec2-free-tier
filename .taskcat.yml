@@ -1,34 +1,21 @@
 project:
   name: ec2-free-tier
 
+  regions:
+    - us-east-1
+
+  package_lambda: false
+
 tests:
-
   t2micro:
-
     template: templates/ec2.yaml
 
-    regions:
-      - us-east-1
-
     parameters:
-
       VpcId: $[taskcat_getval(DefaultVpcId)]
-
       SubnetId: $[taskcat_getval(DefaultSubnet1Id)]
-
       InstanceType: t2.micro
 
-  t3micro:
-
-    template: templates/ec2.yaml
-
     regions:
       - us-east-1
 
-    parameters:
-
-      VpcId: $[taskcat_getval(DefaultVpcId)]
-
-      SubnetId: $[taskcat_getval(DefaultSubnet1Id)]
-
-      InstanceType: t3.micro
+    stack_delete: false
