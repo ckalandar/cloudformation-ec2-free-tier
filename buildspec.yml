@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+
+  install:
+    runtime-versions:
+      python: 3.11
+
+    commands:
+
+      - pip install --upgrade pip
+      - pip install "setuptools<81"
+      - pip install -r requirements.txt
+
+      - wget https://github.com/aws-cloudformation/cloudformation-guard/releases/download/3.2.0/cfn-guard-v3-x86_64-linux-latest.tar.gz
+
+      - tar -xzf cfn-guard-v3-x86_64-linux-latest.tar.gz
+
+      - chmod +x cfn-guard-v3-x86_64-linux-latest/cfn-guard
+
+      - mv cfn-guard-v3-x86_64-linux-latest/cfn-guard /usr/local/bin/
+
+      - gem install cfn-nag
+
+  build:
+    commands:
+
+      - echo "Running cfn-lint"
+      - cfn-lint templates/ec2.yaml
+
+      - echo "Running cfn-guard"
+      - cfn-guard validate --rules guard --data templates/ec2.yaml
+
+      - echo "Running cfn-nag"
+      - cfn_nag_scan --input-path templates/ec2.yaml
+
+artifacts:
+  files:
+    - '**/*'
