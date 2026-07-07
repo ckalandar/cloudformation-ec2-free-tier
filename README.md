@@ -85,3 +85,79 @@ Systems Manager
 Session Manager
 
 Start Session
+Step 1 - Create OIDC Provider
+
+AWS Console
+
+IAM
+  └── Identity Providers
+         └── Add Provider
+
+Provider Type
+
+OpenID Connect
+
+Provider URL
+
+https://token.actions.githubusercontent.com
+
+Audience
+
+sts.amazonaws.com
+
+After creation you'll have:
+
+arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com
+Step 2 - Create IAM Role
+
+Name:
+
+GitHubActionsCloudFormationRole
+
+Trust Policy:
+
+Replace <ACCOUNT_ID> with yours.
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": "repo:ckalandar/cloudformation-ec2-free-tier:*"
+        }
+      }
+    }
+  ]
+}
+Step 3 - IAM Permissions
+
+For learning:
+
+Attach:
+
+AdministratorAccess
+
+I wouldn't do this in production, but for a personal lab it's the fastest way to get moving.
+
+Step 4 - GitHub Secret
+
+Repository:
+
+Settings → Secrets and Variables → Actions
+
+Create:
+
+AWS_ROLE_ARN
+
+Value:
+
+arn:aws:iam::<ACCOUNT_ID>:role/GitHubActionsCloudFormationRole
